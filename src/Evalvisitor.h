@@ -4,9 +4,11 @@
 
 #include "Python3ParserBaseVisitor.h"
 #include "Value.h"
+#include "Func.h"
 class EvalVisitor : public Python3ParserBaseVisitor
 {
 	std::map<std::string, Value> bianliang;
+	std::map<std::string, Func> func;
 	void write_bianliang(std::string s, Value v)
 	{
 		bianliang[s] = v;
@@ -115,7 +117,7 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		else if (v.tag == Value::FLOAT)
 			return Value::flt(-v.f);
 		else if (v.tag == Value::BOOL)
-			return Value::num(-(v.b ? 1LL : 0LL)); // -True → -1
+			return Value::num(-(v.b ? 1LL : 0LL));
 		else if (v.tag == Value::STR)
 			return Value::num(0); // 作业保证不出现
 		else
@@ -173,7 +175,22 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		}
 		else if (ctx->augassign() != nullptr) // 是一个包含类似'+=/-='之类的表达式
 		{
-			// TODO
+
+			std::string s = ctx->augassign()->getText();
+			std::string op = s.substr(0, s.size() - 1);
+			std::string u = ctx->testlist()[0]->test()[0]->getText();
+			Value x = read_bianliang(u);
+			Value d = eval(ctx->testlist()[1]);
+
+			if (op == "+")
+			{
+				x = x + d;
+			}
+			else if (op == "-")
+				x = x - d;
+			else
+				x = muldivmod(op, x, d);
+			write_bianliang(u, x);
 			return {};
 		}
 		else // 是一个赋值式
@@ -190,7 +207,14 @@ class EvalVisitor : public Python3ParserBaseVisitor
 				else
 				{
 					// TODO:多变量组合解析
-					return Value{};
+					auto seg = ctx->testlist()[i];
+					if (x.tag != Value::TUPLE || x.items.size() != seg->test().size())
+					{
+						std::cout << "wanyuanshenwande";
+						exit(0);
+					}
+					for (size_t k = 0; k < seg->test().size(); ++k)
+						write_bianliang(seg->test()[k]->getText(), x.items[k]);
 				}
 			}
 			return Value{};
@@ -261,7 +285,12 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		auto p = ctx->term();
 		auto q = ctx->addorsub_op();
 		if (q[0]->getText() == "+")
-			ans = eval(p[0]) + eval(p[1]);
+		{
+			Value a = eval(p[0]);
+			Value b = eval(p[1]);
+			ans = a + b; // 这里曾经直接写eval(p[0])+eval(p[1]),但是问题在于这样两边访问的顺序就不确定了
+		}
+
 		else
 			ans = eval(p[0]) - eval(p[1]);
 		for (int i = 2; i < p.size(); i++)
@@ -287,7 +316,7 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		ans = muldivmod(q[0]->getText(), eval(p[0]), eval(p[1]));
 		for (int i = 2; i < p.size(); i++)
 		{
-			ans = muldivmod(q[i-1]->getText(), ans, eval(p[i]));
+			ans = muldivmod(q[i - 1]->getText(), ans, eval(p[i]));
 		}
 		return ans;
 	}
@@ -336,16 +365,31 @@ class EvalVisitor : public Python3ParserBaseVisitor
 				std::cout << vtostring(args[i]);
 			}
 			std::cout << '\n';
-			return Value{}; // print 返回 None
+			return Value{};
 		}
 		if (fname == "int")
 		{ // TODO
 		}
-		if (fname == "float")
+		else if (fname == "float")
 		{ // TODO
-		}
 
-		throw std::runtime_error("undefined function(genshinimpact): " + fname);
+		}
+		else
+		{
+			if(func.find(fname)==func.end()) 
+			{
+				std::cout<<"wanyuanshenwande";
+				exit(0);
+			}
+			auto f=func[fname];
+			for(int i=0;i<f.FuncBL.size();i++)
+			{
+				if(i>=args.size()) write_bianliang(f.FuncBL[i].name,f.FuncBL[i].moren);
+				else write_bianliang(f.FuncBL[i].name,args[i]);
+				
+			}
+			return eval(f.body);
+		}
 	}
 	std::any visitAtom(Python3Parser::AtomContext *ctx) override
 	{
@@ -353,7 +397,6 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		{
 			return read_bianliang(ctx->NAME()->getText());
 		}
-		// ② NUMBER —— 十进制整数 or 小数
 		if (ctx->NUMBER() != nullptr)
 		{
 			std::string s = ctx->NUMBER()->getText();
@@ -361,31 +404,87 @@ class EvalVisitor : public Python3ParserBaseVisitor
 				return Value::flt(std::stod(s));
 			return Value::num(std::stoll(s));
 		}
-		// ③ STRING+ —— 去掉两端引号
 		if (!ctx->STRING().empty())
 		{
 			std::string body;
-			for (auto *t : ctx->STRING()) // "ab" "cd" 是拼接，所以循环
+			for (auto *t : ctx->STRING())
 			{
 				std::string s = t->getText();
 				body += s.substr(1, s.size() - 2);
 			}
 			return Value::str(body);
 		}
-		// ④ 三个关键字字面量
 		if (ctx->TRUE() != nullptr)
 			return Value::boolean(true);
 		if (ctx->FALSE() != nullptr)
 			return Value::boolean(false);
 		if (ctx->NONE() != nullptr)
-			return Value{}; // tag 默认就是 NONE
+			return Value{};
 
-		// ⑤ '(' test ')' —— 括号不改变值，直接往下钻
 		if (ctx->test() != nullptr)
 			return visit(ctx->test());
 
-		// ⑥ format_string，还没做，先兜底
 		return Value::str("");
+	}
+	std::any visitSuite(Python3Parser::SuiteContext *ctx) override
+	{
+		if (ctx->simple_stmt() != nullptr)
+		{
+			return visit(ctx->simple_stmt());
+		}
+		else
+		{
+			for (auto x : ctx->stmt())
+			{
+				visit(x);
+			}
+			return Value{};
+		}
+	}
+	std::any visitIf_stmt(Python3Parser::If_stmtContext *ctx) override
+	{
+		auto p = ctx->test();
+		auto q = ctx->suite();
+		Value x = eval(p[0]);
+		if (truthy(x))
+			return (visit(q[0]));
+		for (int i = 1; i < p.size(); i++)
+		{
+			x = eval(p[i]);
+			if (truthy(x))
+				return visit(q[i]);
+		}
+		if (ctx->ELSE() != nullptr)
+			return visit(q[q.size() - 1]);
+		return Value{};
+	}
+	std::any visitWhile_stmt(Python3Parser::While_stmtContext *ctx) override
+	{
+		while (truthy(eval(ctx->test()))) // 每轮重新求值
+			visit(ctx->suite());
+		return Value{};
+	}
+	std::any visitFuncdef(Python3Parser::FuncdefContext *ctx) override
+	{
+		auto p=ctx->parameters()->typedargslist();
+		func[ctx->NAME()->getText()].body=ctx->suite();
+		if(p==nullptr) return Value{}; 
+		int n=p->tfpdef().size(),m=p->test().size();
+		for(int i=0;i<n-m;i++)
+		{
+			funcbl x;
+			x.name=p->tfpdef()[i]->getText();
+			func[ctx->NAME()->getText()].FuncBL.push_back(x);
+		}
+		for(int i=n-m;i<n;i++)
+		{
+			funcbl x;
+			x.name=p->tfpdef()[i]->getText();
+			x.hasmoren=1;
+			x.moren=eval(p->test()[i-n+m]);
+			func[ctx->NAME()->getText()].FuncBL.push_back(x);
+		}
+		return Value{};
 	}
 };
 // TODO: override all methods of Python3ParserBaseVisitor
