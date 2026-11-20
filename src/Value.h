@@ -125,6 +125,10 @@ inline Value operator+(const Value &a, const Value &b)
         return Value{};
     }
 }
+struct ReturnSign
+{
+    Value v;
+};
 inline Value operator-(const Value &a, const Value &b)
 {
     if (a.tag == Value::BOOL && b.tag == Value::BOOL)

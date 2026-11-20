@@ -372,24 +372,32 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		}
 		else if (fname == "float")
 		{ // TODO
-
 		}
 		else
 		{
-			if(func.find(fname)==func.end()) 
+			if (func.find(fname) == func.end())
 			{
-				std::cout<<"wanyuanshenwande";
+				std::cout << "wanyuanshenwande";
 				exit(0);
 			}
-			auto f=func[fname];
-			for(int i=0;i<f.FuncBL.size();i++)
+			auto f = func[fname];
+			for (int i = 0; i < f.FuncBL.size(); i++)
 			{
-				if(i>=args.size()) write_bianliang(f.FuncBL[i].name,f.FuncBL[i].moren);
-				else write_bianliang(f.FuncBL[i].name,args[i]);
-				
+				if (i >= args.size())
+					write_bianliang(f.FuncBL[i].name, f.FuncBL[i].moren);
+				else
+					write_bianliang(f.FuncBL[i].name, args[i]);
 			}
-			return eval(f.body);
+			try
+			{
+				visit(f.body);
+			}
+			catch (ReturnSign &sig)
+			{
+				return sig.v;
+			}
 		}
+		return Value{};
 	}
 	std::any visitAtom(Python3Parser::AtomContext *ctx) override
 	{
@@ -466,25 +474,32 @@ class EvalVisitor : public Python3ParserBaseVisitor
 	}
 	std::any visitFuncdef(Python3Parser::FuncdefContext *ctx) override
 	{
-		auto p=ctx->parameters()->typedargslist();
-		func[ctx->NAME()->getText()].body=ctx->suite();
-		if(p==nullptr) return Value{}; 
-		int n=p->tfpdef().size(),m=p->test().size();
-		for(int i=0;i<n-m;i++)
+		auto p = ctx->parameters()->typedargslist();
+		func[ctx->NAME()->getText()].body = ctx->suite();
+		if (p == nullptr)
+			return Value{};
+		int n = p->tfpdef().size(), m = p->test().size();
+		for (int i = 0; i < n - m; i++)
 		{
 			funcbl x;
-			x.name=p->tfpdef()[i]->getText();
+			x.name = p->tfpdef()[i]->getText();
 			func[ctx->NAME()->getText()].FuncBL.push_back(x);
 		}
-		for(int i=n-m;i<n;i++)
+		for (int i = n - m; i < n; i++)
 		{
 			funcbl x;
-			x.name=p->tfpdef()[i]->getText();
-			x.hasmoren=1;
-			x.moren=eval(p->test()[i-n+m]);
+			x.name = p->tfpdef()[i]->getText();
+			x.hasmoren = 1;
+			x.moren = eval(p->test()[i - n + m]);
 			func[ctx->NAME()->getText()].FuncBL.push_back(x);
 		}
 		return Value{};
+	}
+	std::any visitReturn_stmt(Python3Parser::Return_stmtContext *ctx) override
+	{
+		if (ctx->testlist() != nullptr)
+			throw ReturnSign{eval(ctx->testlist())};
+		throw ReturnSign{Value{}};
 	}
 };
 // TODO: override all methods of Python3ParserBaseVisitor
