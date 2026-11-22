@@ -3,6 +3,7 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
+#include"int2048.h"
 struct Value
 {
     enum Tag
@@ -14,7 +15,7 @@ struct Value
         STR,
         TUPLE
     } tag = NONE;
-    long long i = 0;          // tag == INT
+    sjtu::int2048 i = 0;          // tag == INT
     double f = 0;             // tag == FLOAT
     bool b = false;           // tag == BOOL
     std::string s;            // tag == STR
@@ -26,7 +27,7 @@ struct Value
         r.b = v;
         return r;
     }
-    static Value num(long long v)
+    static Value num(sjtu::int2048 v)
     {
         Value r;
         r.tag = INT;
@@ -97,13 +98,13 @@ inline Value operator+(const Value &a, const Value &b)
     else if (a.tag == Value::FLOAT && b.tag == Value::INT)
     {
         ans.tag = Value::FLOAT;
-        ans.f = a.f + b.i;
+        ans.f = a.f + sjtu::itold(b.i);
         return ans;
     }
     else if (a.tag == Value::INT && b.tag == Value::FLOAT)
     {
         ans.tag = Value::FLOAT;
-        ans.f = a.i + b.f;
+        ans.f = sjtu::itold(a.i) + b.f;
         return ans;
     }
     else if (a.tag == Value::FLOAT && b.tag == Value::BOOL)
@@ -144,9 +145,9 @@ inline Value operator-(const Value &a, const Value &b)
     if (a.tag == Value::FLOAT && b.tag == Value::BOOL)
         return Value::flt(a.f - b.b);
     if (a.tag == Value::INT && b.tag == Value::FLOAT)
-        return Value::flt(a.i - b.f);
+        return Value::flt(sjtu::itold(a.i) - b.f);
     if (a.tag == Value::FLOAT && b.tag == Value::INT)
-        return Value::flt(a.f - b.i);
+        return Value::flt(a.f - sjtu::itold(b.i));
     if (a.tag == Value::FLOAT && b.tag == Value::FLOAT)
         return Value::flt(a.f - b.f);
     std::cout << "wanyuanshenwande";
@@ -158,7 +159,7 @@ inline Value operator*(const Value &a, const Value &b)
 {
     if (a.tag == Value::STR && (b.tag == Value::INT || b.tag == Value::BOOL))
     {
-        long long n = (b.tag == Value::BOOL) ? (b.b ? 1 : 0) : b.i;
+        sjtu::int2048 n = (b.tag == Value::BOOL) ? (b.b ? 1 : 0) : b.i;
         std::string s;
         for (long long k = 0; k < n; ++k)
             s += a.s;
@@ -166,7 +167,7 @@ inline Value operator*(const Value &a, const Value &b)
     }
     if (b.tag == Value::STR && (a.tag == Value::INT || a.tag == Value::BOOL))
     {
-        long long n = (a.tag == Value::BOOL) ? (a.b ? 1 : 0) : a.i;
+        sjtu::int2048 n = (a.tag == Value::BOOL) ? (a.b ? 1 : 0) : a.i;
         std::string s;
         for (long long k = 0; k < n; ++k)
             s += b.s;
@@ -185,9 +186,9 @@ inline Value operator*(const Value &a, const Value &b)
     if (a.tag == Value::FLOAT && b.tag == Value::BOOL)
         return Value::flt(a.f * b.b);
     if (a.tag == Value::INT && b.tag == Value::FLOAT)
-        return Value::flt(a.i * b.f);
+        return Value::flt(sjtu::itold(a.i) * b.f);
     if (a.tag == Value::FLOAT && b.tag == Value::INT)
-        return Value::flt(a.f * b.i);
+        return Value::flt(a.f * sjtu::itold(b.i));
     if (a.tag == Value::FLOAT && b.tag == Value::FLOAT)
         return Value::flt(a.f * b.f);
     std::cout << "wanyuanshenwande";
@@ -200,59 +201,44 @@ inline Value operator/(const Value &a, const Value &b)
     if (a.tag == Value::BOOL && b.tag == Value::BOOL)
         return Value::flt((double)a.b / b.b);
     if (a.tag == Value::BOOL && b.tag == Value::INT)
-        return Value::flt(a.b / (double)b.i);
+        return Value::flt(a.b / sjtu::itold(b.i));
     if (a.tag == Value::INT && b.tag == Value::BOOL)
-        return Value::flt(a.i / (double)b.b);
+        return Value::flt(sjtu::itold(a.i) / (double)b.b);
     if (a.tag == Value::INT && b.tag == Value::INT)
-        return Value::flt((double)a.i / b.i);
+        return Value::flt(sjtu::itold(a.i) / sjtu::itold(b.i));
     if (a.tag == Value::BOOL && b.tag == Value::FLOAT)
         return Value::flt(a.b / b.f);
     if (a.tag == Value::FLOAT && b.tag == Value::BOOL)
         return Value::flt(a.f / b.b);
     if (a.tag == Value::INT && b.tag == Value::FLOAT)
-        return Value::flt(a.i / b.f);
+        return Value::flt(sjtu::itold(a.i) / b.f);
     if (a.tag == Value::FLOAT && b.tag == Value::INT)
-        return Value::flt(a.f / b.i);
+        return Value::flt(a.f / sjtu::itold(b.i));
     if (a.tag == Value::FLOAT && b.tag == Value::FLOAT)
         return Value::flt(a.f / b.f);
     std::cout << "wanyuanshenwande";
     exit(0);
     return Value{};
 }
-inline long long floor_div_ll(long long x, long long y)
-{
-    long long q = x / y;
-    if (x % y != 0 && ((x < 0) != (y < 0)))
-        --q;
-    return q;
-}
-
-inline long long floor_mod_ll(long long x, long long y)
-{
-    long long r = x % y;
-    if (r != 0 && ((r < 0) != (y < 0)))
-        r += y;
-    return r;
-}
 
 inline Value floordiv(const Value &a, const Value &b)
 {
     if (a.tag == Value::BOOL && b.tag == Value::BOOL)
-        return Value::num(floor_div_ll(a.b, b.b));
+        return Value::num(sjtu::int2048(a.b) / sjtu::int2048(b.b));
     if (a.tag == Value::BOOL && b.tag == Value::INT)
-        return Value::num(floor_div_ll(a.b, b.i));
+        return Value::num(sjtu::int2048(a.b) / b.i);
     if (a.tag == Value::INT && b.tag == Value::BOOL)
-        return Value::num(floor_div_ll(a.i, b.b));
+       return Value::num(a.i / sjtu::int2048(b.b));
     if (a.tag == Value::INT && b.tag == Value::INT)
-        return Value::num(floor_div_ll(a.i, b.i));
+       return Value::num(a.i / b.i);
     if (a.tag == Value::BOOL && b.tag == Value::FLOAT)
         return Value::flt(std::floor(a.b / b.f));
     if (a.tag == Value::FLOAT && b.tag == Value::BOOL)
         return Value::flt(std::floor(a.f / b.b));
     if (a.tag == Value::INT && b.tag == Value::FLOAT)
-        return Value::flt(std::floor(a.i / b.f));
+        return Value::flt(std::floor(sjtu::itold(a.i) / b.f));
     if (a.tag == Value::FLOAT && b.tag == Value::INT)
-        return Value::flt(std::floor(a.f / b.i));
+        return Value::flt(std::floor(a.f / sjtu::itold(b.i)));
     if (a.tag == Value::FLOAT && b.tag == Value::FLOAT)
         return Value::flt(std::floor(a.f / b.f));
     std::cout << "wanyuanshenwande";
@@ -263,21 +249,21 @@ inline Value floordiv(const Value &a, const Value &b)
 inline Value operator%(const Value &a, const Value &b)
 {
     if (a.tag == Value::BOOL && b.tag == Value::BOOL)
-        return Value::num(floor_mod_ll(a.b, b.b));
+        return Value::num(sjtu::int2048(a.b) % sjtu::int2048(b.b));
     if (a.tag == Value::BOOL && b.tag == Value::INT)
-        return Value::num(floor_mod_ll(a.b, b.i));
+       return Value::num(sjtu::int2048(a.b) % b.i);
     if (a.tag == Value::INT && b.tag == Value::BOOL)
-        return Value::num(floor_mod_ll(a.i, b.b));
+        return Value::num(a.i % sjtu::int2048(b.b));
     if (a.tag == Value::INT && b.tag == Value::INT)
-        return Value::num(floor_mod_ll(a.i, b.i));
+        return Value::num(a.i % b.i);
     if (a.tag == Value::BOOL && b.tag == Value::FLOAT)
         return Value::flt(a.b - std::floor(a.b / b.f) * b.f);
     if (a.tag == Value::FLOAT && b.tag == Value::BOOL)
         return Value::flt(a.f - std::floor(a.f / b.b) * b.b);
     if (a.tag == Value::INT && b.tag == Value::FLOAT)
-        return Value::flt(a.i - std::floor(a.i / b.f) * b.f);
+        return Value::flt(sjtu::itold(a.i) - std::floor(sjtu::itold(a.i) / b.f) * b.f);
     if (a.tag == Value::FLOAT && b.tag == Value::INT)
-        return Value::flt(a.f - std::floor(a.f / b.i) * b.i);
+        return Value::flt(a.f - std::floor(a.f / sjtu::itold(b.i)) * sjtu::itold(b.i));
     if (a.tag == Value::FLOAT && b.tag == Value::FLOAT)
         return Value::flt(a.f - std::floor(a.f / b.f) * b.f);
     std::cout << "wanyuanshenwande";

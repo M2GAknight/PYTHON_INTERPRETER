@@ -5,6 +5,7 @@
 #include "Python3ParserBaseVisitor.h"
 #include "Value.h"
 #include "Func.h"
+#include "int2048.h"
 class EvalVisitor : public Python3ParserBaseVisitor
 {
 	std::vector<std::map<std::string, Value>> bianliang;
@@ -85,8 +86,8 @@ class EvalVisitor : public Python3ParserBaseVisitor
 
 			if (!has_float)
 			{
-				long long x = (a.tag == Value::BOOL) ? (a.b ? 1LL : 0LL) : a.i;
-				long long y = (b.tag == Value::BOOL) ? (b.b ? 1LL : 0LL) : b.i;
+				sjtu::int2048 x = (a.tag == Value::BOOL) ? (a.b ? 1LL : 0LL) : a.i;
+				sjtu::int2048 y = (b.tag == Value::BOOL) ? (b.b ? 1LL : 0LL) : b.i;
 				if (op == "==")
 					return x == y;
 				if (op == "!=")
@@ -100,12 +101,8 @@ class EvalVisitor : public Python3ParserBaseVisitor
 				return x >= y;
 			}
 
-			double x = (a.tag == Value::FLOAT)
-						   ? a.f
-						   : (double)((a.tag == Value::BOOL) ? (a.b ? 1 : 0) : a.i);
-			double y = (b.tag == Value::FLOAT)
-						   ? b.f
-						   : (double)((b.tag == Value::BOOL) ? (b.b ? 1 : 0) : b.i);
+			double x = (a.tag == Value::FLOAT) ? a.f : sjtu::itold((a.tag == Value::BOOL) ? (a.b ? 1 : 0) : a.i);
+			double y = (b.tag == Value::FLOAT)? b.f: sjtu::itold((b.tag == Value::BOOL) ? (b.b ? 1 : 0) : b.i);
 			if (op == "==")
 				return x == y;
 			if (op == "!=")
@@ -141,7 +138,7 @@ class EvalVisitor : public Python3ParserBaseVisitor
 	std::string vtostring(Value x)
 	{
 		if (x.tag == Value::INT)
-			return std::to_string(x.i);
+			return sjtu::itos(x.i);
 		else if (x.tag == Value::BOOL)
 			return x.b ? "True" : "False";
 		else if (x.tag == Value::FLOAT)
@@ -412,6 +409,7 @@ class EvalVisitor : public Python3ParserBaseVisitor
 			bianliang.pop_back();
 			return ans;
 		}
+		return {};
 	}
 	std::any visitAtom(Python3Parser::AtomContext *ctx) override
 	{
@@ -424,7 +422,7 @@ class EvalVisitor : public Python3ParserBaseVisitor
 			std::string s = ctx->NUMBER()->getText();
 			if (s.find('.') != std::string::npos)
 				return Value::flt(std::stod(s));
-			return Value::num(std::stoll(s));
+			return Value::num(sjtu::int2048(s));
 		}
 		if (!ctx->STRING().empty())
 		{
@@ -455,7 +453,7 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		for (auto *ch : ctx->children) // 顺序就是原文顺序
 		{
 			auto *t = dynamic_cast<antlr4::tree::TerminalNode *>(ch);
-			if (t!=nullptr && t->getSymbol()->getType() == Python3Parser::FORMAT_STRING_LITERAL)
+			if (t != nullptr && t->getSymbol()->getType() == Python3Parser::FORMAT_STRING_LITERAL)
 				s += ch->getText();
 			else if (t == nullptr)
 				s += vtostring(eval(ch));
