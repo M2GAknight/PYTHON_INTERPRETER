@@ -230,25 +230,34 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		{
 			return visit(ctx->testlist()[0]);
 		}
-		else if (ctx->augassign() != nullptr) // 是一个包含类似'+=/-='之类的表达式
+		else if (ctx->augassign() != nullptr) // 是一个包含类似'+=/-='之类的表达式,注意一开始想当然了没考虑这里还有大作业特供语法
 		{
 
 			std::string s = ctx->augassign()->getText();
 			std::string op = s.substr(0, s.size() - 1);
-			std::string u = ctx->testlist()[0]->test()[0]->getText();
-			Value x = read_bianliang(u);
-			Value d = eval(ctx->testlist()[1]);
 
-			if (op == "+")
+			auto L = ctx->testlist()[0]->test(); 
+			auto R = ctx->testlist()[1]->test(); 
+			if (L.size() != R.size())
 			{
-				x = x + d;
+				std::cout << "wanyuanshenwande";
+				exit(0);
 			}
-			else if (op == "-")
-				x = x - d;
-			else
-				x = muldivmod(op, x, d);
-			write_bianliang(u, x);
-			return {};
+
+			std::vector<Value> vals;
+			for (size_t i = 0; i < L.size(); ++i)
+			{
+				Value cur = read_bianliang(L[i]->getText());
+				Value d = eval(R[i]);
+				if (op == "+")
+					vals.push_back(cur + d);
+				else if (op == "-")
+					vals.push_back(cur - d);
+				else
+					vals.push_back(muldivmod(op, cur, d));
+			}
+			for (size_t i = 0; i < L.size(); ++i)
+				write_bianliang(L[i]->getText(), vals[i]);
 		}
 		else // 是一个赋值式
 		{
@@ -492,7 +501,7 @@ class EvalVisitor : public Python3ParserBaseVisitor
 				auto it = kw.find(nm);
 				if (i >= args.size())
 					bianliang.back()[f.FuncBL[i].name] = f.FuncBL[i].moren;
-				else if(it!=kw.end())
+				else if (it != kw.end())
 				{
 					bianliang.back()[nm] = it->second;
 				}
