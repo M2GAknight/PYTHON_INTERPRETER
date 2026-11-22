@@ -258,6 +258,7 @@ class EvalVisitor : public Python3ParserBaseVisitor
 			}
 			for (size_t i = 0; i < L.size(); ++i)
 				write_bianliang(L[i]->getText(), vals[i]);
+			return {};
 		}
 		else // 是一个赋值式
 		{
