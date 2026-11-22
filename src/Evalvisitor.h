@@ -8,6 +8,55 @@
 #include "int2048.h"
 class EvalVisitor : public Python3ParserBaseVisitor
 {
+	inline std::string zhuanyi_string(const std::string &s)
+	{
+		std::string r;
+		for (size_t i = 0; i < s.size(); i++)
+		{
+			if (s[i] != '\\' || i + 1 >= s.size()) // ‘\\’用来表示‘\’
+			{
+				r += s[i];
+				continue;
+			}
+			++i;
+			switch (s[i])
+			{
+			case 'n':
+				r += '\n';
+				break;
+			case 't':
+				r += '\t';
+				break;
+			case 'r':
+				r += '\r';
+				break;
+			case '\\':
+				r += '\\';
+				break;
+			case '"':
+				r += '"';
+				break;
+			case '\'':
+				r += '\'';
+				break;
+			default:
+				r += s[i];
+				break;
+			}
+		}
+		return r;
+	}
+	inline std::string doublekuohaocheck(const std::string &s)
+	{
+		std::string r;
+		for (size_t i = 0; i < s.size(); ++i)
+		{
+			if ((s[i] == '{' || s[i] == '}') && i + 1 < s.size() && s[i + 1] == s[i])
+				++i; 
+			r += s[i];
+		}
+		return r;
+	}
 	std::vector<std::map<std::string, Value>> bianliang;
 	std::map<std::string, Func> func;
 	void write_bianliang(std::string s, Value v)
@@ -471,7 +520,7 @@ class EvalVisitor : public Python3ParserBaseVisitor
 			for (auto *t : ctx->STRING())
 			{
 				std::string s = t->getText();
-				body += s.substr(1, s.size() - 2);
+				body += zhuanyi_string(s.substr(1, s.size() - 2));
 			}
 			return Value::str(body);
 		}
@@ -495,7 +544,7 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		{
 			auto *t = dynamic_cast<antlr4::tree::TerminalNode *>(ch);
 			if (t != nullptr && t->getSymbol()->getType() == Python3Parser::FORMAT_STRING_LITERAL)
-				s += ch->getText();
+				s += doublekuohaocheck(zhuanyi_string(ch->getText()));
 			else if (t == nullptr)
 				s += vtostring(eval(ch));
 			else
