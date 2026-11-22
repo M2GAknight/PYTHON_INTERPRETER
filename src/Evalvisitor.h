@@ -52,7 +52,7 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		for (size_t i = 0; i < s.size(); ++i)
 		{
 			if ((s[i] == '{' || s[i] == '}') && i + 1 < s.size() && s[i + 1] == s[i])
-				++i; 
+				++i;
 			r += s[i];
 		}
 		return r;
@@ -408,11 +408,16 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		std::string fname = ctx->atom()->getText();
 
 		std::vector<Value> args;
-		auto *al = ctx->trailer()->arglist();
+		std::map<std::string, Value> kw;
+		auto al = ctx->trailer()->arglist();
 		if (al != nullptr)
 			for (auto *a : al->argument())
-				args.push_back(eval(a->test(0)));
-
+			{
+				if (a->ASSIGN() != nullptr)
+					kw[a->test(0)->getText()] = eval(a->test(1));
+				else
+					args.push_back(eval(a->test(0)));
+			}
 		if (fname == "print")
 		{
 			for (int i = 0; i < args.size(); ++i)
@@ -481,13 +486,18 @@ class EvalVisitor : public Python3ParserBaseVisitor
 			}
 			auto f = func[fname];
 			bianliang.push_back({});
-			for (int i = 0; i < f.FuncBL.size(); i++)//这里一开始有个bug：由于形参不能遮蔽实参，所以这里不能用writebianliang，不然有可能去改实参了
+			for (int i = 0; i < f.FuncBL.size(); i++) // 这里一开始有个bug：由于形参不能遮蔽实参，所以这里不能用writebianliang，不然有可能去改实参了
 			{
+				const std::string &nm = f.FuncBL[i].name;
+				auto it = kw.find(nm);
 				if (i >= args.size())
-					 bianliang.back()[f.FuncBL[i].name] = f.FuncBL[i].moren;
+					bianliang.back()[f.FuncBL[i].name] = f.FuncBL[i].moren;
+				else if(it!=kw.end())
+				{
+					bianliang.back()[nm] = it->second;
+				}
 				else
 					bianliang.back()[f.FuncBL[i].name] = args[i];
-
 			}
 			try
 			{
