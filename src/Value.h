@@ -130,6 +130,8 @@ struct ReturnSign
 {
     Value v;
 };
+struct BreakSign {};
+struct ContinueSign {};
 inline Value operator-(const Value &a, const Value &b)
 {
     if (a.tag == Value::BOOL && b.tag == Value::BOOL)

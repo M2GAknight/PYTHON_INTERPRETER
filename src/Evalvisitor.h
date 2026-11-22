@@ -102,7 +102,7 @@ class EvalVisitor : public Python3ParserBaseVisitor
 			}
 
 			double x = (a.tag == Value::FLOAT) ? a.f : sjtu::itold((a.tag == Value::BOOL) ? (a.b ? 1 : 0) : a.i);
-			double y = (b.tag == Value::FLOAT)? b.f: sjtu::itold((b.tag == Value::BOOL) ? (b.b ? 1 : 0) : b.i);
+			double y = (b.tag == Value::FLOAT) ? b.f : sjtu::itold((b.tag == Value::BOOL) ? (b.b ? 1 : 0) : b.i);
 			if (op == "==")
 				return x == y;
 			if (op == "!=")
@@ -377,9 +377,50 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		}
 		if (fname == "int")
 		{ // TODO
+
+			Value x = args[0];
+			if (x.tag == Value::BOOL)
+			{
+				x.tag = Value::INT;
+				x.i = sjtu::int2048(x.b ? 1LL : 0LL);
+			}
+			else if (x.tag == Value::FLOAT)
+			{
+				x.tag = Value::INT;
+				x.i = sjtu::int2048((long long)x.f);
+			}
+			else if (x.tag == Value::STR)
+			{
+				x.tag = Value::INT;
+				x.i = sjtu::int2048(x.s);
+			}
+			return x; // tag 本来就是 INT 时原样返回
 		}
 		else if (fname == "float")
-		{ // TODO
+		{
+			Value x = args[0];
+			if (x.tag == Value::BOOL)
+				x.f = x.b ? 1.0 : 0.0;
+			else if (x.tag == Value::INT)
+				x.f = sjtu::itold(x.i);
+			else if (x.tag == Value::STR)
+				x.f = std::stod(x.s);
+			x.tag = Value::FLOAT;
+			return x;
+		}
+		else if (fname == "str")
+		{
+			Value x = args[0];
+			x.s = vtostring(x);
+			x.tag = Value::STR;
+			return x;
+		}
+		else if (fname == "bool")
+		{
+			Value x = args[0];
+			x.b = truthy(x);
+			x.tag = Value::BOOL;
+			return x;
 		}
 		else
 		{
@@ -496,8 +537,21 @@ class EvalVisitor : public Python3ParserBaseVisitor
 	}
 	std::any visitWhile_stmt(Python3Parser::While_stmtContext *ctx) override
 	{
-		while (truthy(eval(ctx->test()))) // 每轮重新求值
-			visit(ctx->suite());
+		while (truthy(eval(ctx->test())))
+		{
+			try
+			{
+				visit(ctx->suite());
+			}
+			catch (BreakSign &)
+			{
+				break;
+			}
+			catch (ContinueSign &)
+			{
+				continue;
+			}
+		}
 		return Value{};
 	}
 	std::any visitFuncdef(Python3Parser::FuncdefContext *ctx) override
@@ -528,6 +582,14 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		if (ctx->testlist() != nullptr)
 			throw ReturnSign{eval(ctx->testlist())};
 		throw ReturnSign{Value{}};
+	}
+	std::any visitBreak_stmt(Python3Parser::Break_stmtContext *ctx) override
+	{
+		throw BreakSign{};
+	}
+	std::any visitContinue_stmt(Python3Parser::Continue_stmtContext *ctx) override
+	{
+		throw ContinueSign{};
 	}
 };
 // TODO: override all methods of Python3ParserBaseVisitor
