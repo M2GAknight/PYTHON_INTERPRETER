@@ -7,24 +7,34 @@
 #include "Func.h"
 class EvalVisitor : public Python3ParserBaseVisitor
 {
-	std::map<std::string, Value> bianliang;
+	std::vector<std::map<std::string, Value>> bianliang;
 	std::map<std::string, Func> func;
 	void write_bianliang(std::string s, Value v)
 	{
-		bianliang[s] = v;
-		return;
+		if (bianliang[bianliang.size() - 1].find(s) != bianliang[bianliang.size() - 1].end())
+		{
+			bianliang[bianliang.size() - 1][s] = v;
+			return;
+		}
+		if (bianliang[0].find(s) != bianliang[0].end())
+		{
+			bianliang[0][s] = v;
+			return;
+		}
+		bianliang[bianliang.size() - 1][s] = v;
 	}
 	Value read_bianliang(std::string s)
 	{
-		if (bianliang.find(s) != bianliang.end())
+		if (bianliang[bianliang.size() - 1].find(s) != bianliang[bianliang.size() - 1].end())
 		{
-			return bianliang[s];
+			return bianliang[bianliang.size() - 1][s];
 		}
-		else
+		if (bianliang[0].find(s) != bianliang[0].end())
 		{
-			std::cout << "wanyuanshenwande\n";
-			exit(0);
+			return bianliang[0][s];
 		}
+		std::cout << "wanyuanshenwande";
+		exit(0);
 	}
 	bool truthy(const Value &v)
 	{
@@ -143,6 +153,7 @@ class EvalVisitor : public Python3ParserBaseVisitor
 	}
 	std::any visitFile_input(Python3Parser::File_inputContext *ctx) override
 	{
+		bianliang.push_back({});
 		for (auto s : ctx->stmt())
 			visit(s);
 		return {};
@@ -375,12 +386,14 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		}
 		else
 		{
+			Value ans = {};
 			if (func.find(fname) == func.end())
 			{
 				std::cout << "wanyuanshenwande";
 				exit(0);
 			}
 			auto f = func[fname];
+			bianliang.push_back({});
 			for (int i = 0; i < f.FuncBL.size(); i++)
 			{
 				if (i >= args.size())
@@ -394,10 +407,11 @@ class EvalVisitor : public Python3ParserBaseVisitor
 			}
 			catch (ReturnSign &sig)
 			{
-				return sig.v;
+				ans = sig.v;
 			}
+			bianliang.pop_back();
+			return ans;
 		}
-		return Value{};
 	}
 	std::any visitAtom(Python3Parser::AtomContext *ctx) override
 	{
@@ -431,8 +445,24 @@ class EvalVisitor : public Python3ParserBaseVisitor
 
 		if (ctx->test() != nullptr)
 			return visit(ctx->test());
-
+		if (ctx->format_string() != nullptr)
+			return visit(ctx->format_string());
 		return Value::str("");
+	}
+	std::any visitFormat_string(Python3Parser::Format_stringContext *ctx) override
+	{
+		std::string s;
+		for (auto *ch : ctx->children) // 顺序就是原文顺序
+		{
+			auto *t = dynamic_cast<antlr4::tree::TerminalNode *>(ch);
+			if (t!=nullptr && t->getSymbol()->getType() == Python3Parser::FORMAT_STRING_LITERAL)
+				s += ch->getText();
+			else if (t == nullptr)
+				s += vtostring(eval(ch));
+			else
+				continue;
+		}
+		return Value::str(s);
 	}
 	std::any visitSuite(Python3Parser::SuiteContext *ctx) override
 	{
