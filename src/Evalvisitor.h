@@ -481,12 +481,13 @@ class EvalVisitor : public Python3ParserBaseVisitor
 			}
 			auto f = func[fname];
 			bianliang.push_back({});
-			for (int i = 0; i < f.FuncBL.size(); i++)
+			for (int i = 0; i < f.FuncBL.size(); i++)//这里一开始有个bug：由于形参不能遮蔽实参，所以这里不能用writebianliang，不然有可能去改实参了
 			{
 				if (i >= args.size())
-					write_bianliang(f.FuncBL[i].name, f.FuncBL[i].moren);
+					 bianliang.back()[f.FuncBL[i].name] = f.FuncBL[i].moren;
 				else
-					write_bianliang(f.FuncBL[i].name, args[i]);
+					bianliang.back()[f.FuncBL[i].name] = args[i];
+
 			}
 			try
 			{
