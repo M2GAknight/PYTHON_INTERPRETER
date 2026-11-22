@@ -1,0 +1,17 @@
+# while with break / continue (doc 3.5 / 3.6)
+i = 0
+s = 0
+while i < 10:
+    i += 1
+    if i % 2 == 0:
+        continue
+    if i > 7:
+        break
+    s += i
+print(s, i)
+j = 0
+while True:
+    j += 1
+    if j == 3:
+        break
+print(j)

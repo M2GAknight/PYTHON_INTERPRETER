@@ -164,6 +164,8 @@ class EvalVisitor : public Python3ParserBaseVisitor
 				return x <= y;
 			return x >= y;
 		}
+		if (op == "!=" && ((a.tag == Value::STR && isnum(b)) || (b.tag == Value::STR && isnum(a))))
+			return false;
 		return op == "!=";
 	}
 	Value negate(const Value &v)
@@ -236,8 +238,8 @@ class EvalVisitor : public Python3ParserBaseVisitor
 			std::string s = ctx->augassign()->getText();
 			std::string op = s.substr(0, s.size() - 1);
 
-			auto L = ctx->testlist()[0]->test(); 
-			auto R = ctx->testlist()[1]->test(); 
+			auto L = ctx->testlist()[0]->test();
+			auto R = ctx->testlist()[1]->test();
 			if (L.size() != R.size())
 			{
 				std::cout << "wanyuanshenwande";
@@ -359,7 +361,12 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		}
 
 		else
-			ans = eval(p[0]) - eval(p[1]);
+		{
+			Value a = eval(p[0]);
+			Value b = eval(p[1]);
+			ans = a - b;
+		}
+
 		for (int i = 2; i < p.size(); i++)
 		{
 			if (q[i - 1]->getText() == "+")
@@ -380,7 +387,9 @@ class EvalVisitor : public Python3ParserBaseVisitor
 		Value ans;
 		auto p = ctx->factor();
 		auto q = ctx->muldivmod_op();
-		ans = muldivmod(q[0]->getText(), eval(p[0]), eval(p[1]));
+		Value a = eval(p[0]);
+		Value b = eval(p[1]);
+		ans = muldivmod(q[0]->getText(), a, b);
 		for (int i = 2; i < p.size(); i++)
 		{
 			ans = muldivmod(q[i - 1]->getText(), ans, eval(p[i]));
@@ -500,14 +509,12 @@ class EvalVisitor : public Python3ParserBaseVisitor
 			{
 				const std::string &nm = f.FuncBL[i].name;
 				auto it = kw.find(nm);
-				if (i >= args.size())
-					bianliang.back()[f.FuncBL[i].name] = f.FuncBL[i].moren;
+				if (i < args.size())
+					bianliang.back()[nm] = args[i];
 				else if (it != kw.end())
-				{
 					bianliang.back()[nm] = it->second;
-				}
 				else
-					bianliang.back()[f.FuncBL[i].name] = args[i];
+					bianliang.back()[nm] = f.FuncBL[i].moren;
 			}
 			try
 			{

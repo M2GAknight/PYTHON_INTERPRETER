@@ -1,0 +1,11 @@
+# str + str, str * int, str comparison (doc 2.2.2)
+s = "ab"
+print(s * 3)
+print(3 * s)
+print(s + "cd")
+print("abc" < "abd")
+print("Z" < "a")
+print("" == "")
+print(s * True)
+print(s * 0 == "")
+print("A", "", "B")

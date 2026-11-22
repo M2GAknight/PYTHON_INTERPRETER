@@ -1,0 +1,7 @@
+# chained comparison: every operand evaluated at most once (doc 2.2.2)
+def f(n):
+    print(n)
+    return n
+print(f(1) < f(2) < f(3))
+print(f(3) < f(2) < f(1))
+print(f(1) == f(1) != f(2))

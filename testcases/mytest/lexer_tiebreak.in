@@ -1,0 +1,5 @@
+# 合法写法（doc 2.3 明确允许字面内容与 {} 混排、且可含多个 {}），
+# 但提供的 lexer 会拆错：字面量块 a、b、c 都是合法标识符，长度上与 NAME 打平，
+# 而 NAME 的规则号更小（NAME=23 < FORMAT_STRING_LITERAL=25），平局时 NAME 胜。
+x = 7
+print(f"a{x}b{x}c")

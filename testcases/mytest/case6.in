@@ -1,0 +1,21 @@
+# multi-variable augmented assignment (doc 3.2.2) and type change (doc 3.2.1)
+a, b = 1, 2
+a, b += 10, 20
+print(a, b)
+a, b = 1, 2
+a, b += b, a
+print(a, b)
+s = "ab"
+s += "cd"
+s *= 2
+print(s)
+x = 7
+x //= 2
+print(x)
+x /= 2
+print(x)
+x -= 0.5
+print(x)
+y = 10
+y %= 3
+print(y)

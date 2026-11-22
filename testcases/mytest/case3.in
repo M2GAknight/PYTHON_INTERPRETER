@@ -1,0 +1,11 @@
+# and / or behave like C++ && / ||, result is bool (doc 2.2.2)
+def f():
+    print("called")
+    return True
+print(True or f())
+print(False and f())
+print(1 and 2)
+print(0 or "abc")
+print(not "")
+print(False or 0)
+print(not 1 == 2)

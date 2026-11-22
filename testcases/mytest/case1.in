@@ -1,0 +1,7 @@
+# default value is fixed at definition time (doc 4.1)
+e0 = "str"
+def f(a, e = e0):
+    print(a, e)
+e0 = "other"
+f(1)
+f(2, e0)
